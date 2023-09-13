@@ -1,10 +1,10 @@
 /*
-  ==============================================================================
-
-    This file contains the basic framework code for a JUCE plugin editor.
-
-  ==============================================================================
-*/
+ ==============================================================================
+ 
+ This file contains the basic framework code for a JUCE plugin editor.
+ 
+ ==============================================================================
+ */
 
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
@@ -24,25 +24,25 @@ void LookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y, int width, i
     
     if (auto* rswl = dynamic_cast<RotarySliderWithLabels*>(&slider))
     {
-    auto center = bounds.getCentre();
-    
-    Path p;
-    
-    Rectangle<float> r;
-    r.setLeft(center.getX() - 2);
-    r.setRight(center.getX() + 2);
-    r.setTop(bounds.getY());
-    r.setBottom(center.getY() - rswl->getTextHeight() * 1.5);
-    
-    p.addRoundedRectangle(r, 2.f);
-    
-    jassert(rotaryStartAngle < rotaryEndAngle);
-    
-    auto sliderAngRad = jmap(sliderPosProportional, 0.f, 1.f, rotaryStartAngle, rotaryEndAngle);
-    
-    p.applyTransform(AffineTransform().rotated(sliderAngRad, center.getX(), center.getY()));
-    
-    g.fillPath(p);
+        auto center = bounds.getCentre();
+        
+        Path p;
+        
+        Rectangle<float> r;
+        r.setLeft(center.getX() - 2);
+        r.setRight(center.getX() + 2);
+        r.setTop(bounds.getY());
+        r.setBottom(center.getY() - rswl->getTextHeight() * 1.5);
+        
+        p.addRoundedRectangle(r, 2.f);
+        
+        jassert(rotaryStartAngle < rotaryEndAngle);
+        
+        auto sliderAngRad = jmap(sliderPosProportional, 0.f, 1.f, rotaryStartAngle, rotaryEndAngle);
+        
+        p.applyTransform(AffineTransform().rotated(sliderAngRad, center.getX(), center.getY()));
+        
+        g.fillPath(p);
         
         g.setFont(rswl->getTextHeight());
         auto text = rswl->getDisplayString();
@@ -69,11 +69,6 @@ void RotarySliderWithLabels::paint(juce::Graphics &g)
     auto range = getRange();
     
     auto sliderBounds = getSliderBounds();
-    
-//    g.setColour(Colours::red);
-//    g.drawRect(getLocalBounds());
-//    g.setColour(Colours::yellow);
-//    g.drawRect(sliderBounds);
     
     getLookAndFeel().drawRotarySlider(g, sliderBounds.getX(), sliderBounds.getY(), sliderBounds.getWidth(), sliderBounds.getHeight(), jmap(getValue(), range.getStart(), range.getEnd(), 0.0, 1.0), startAng, endAng, *this);
     
@@ -209,77 +204,149 @@ void ResponseCurveComponent::updateChain()
 
 void ResponseCurveComponent::paint(juce::Graphics& g)
 {
-        using namespace juce;
-        // (Our component is opaque, so we must completely fill the background with a solid colour)
-        g.fillAll (Colours::black);
+    using namespace juce;
+    // (Our component is opaque, so we must completely fill the background with a solid colour)
+    g.fillAll (Colours::black);
+    
+    g.drawImage(background, getLocalBounds().toFloat());
+    
+    auto responseArea = getAnalysisArea(); //getRenderArea();
+    
+    auto w = responseArea.getWidth();
+    
+    auto& lowCut = monoChain.get<ChainPositions::LowCut>();
+    auto& peak = monoChain.get<ChainPositions::Peak>();
+    auto& highCut = monoChain.get<ChainPositions::HighCut>();
+    
+    auto sampleRate = audioProcessor.getSampleRate();
+    
+    std::vector<double> mags;
+    mags.resize(w);
+    
+    for (int i =0; i < w; ++i)
+    {
+        double mag = 1.f;
+        auto freq = mapToLog10(double(i) / double(w), 20.0, 20000.0);
         
-        auto responseArea = getLocalBounds();
-        // auto responseArea = bounds.removeFromTop(bounds.getHeight() * 0.33);
+        if (!monoChain.isBypassed<ChainPositions::Peak>())
+            mag *= peak.coefficients->getMagnitudeForFrequency(freq, sampleRate);
         
-        auto w = responseArea.getWidth();
+        if (!lowCut.isBypassed<0>())
+            mag *= lowCut.get<0>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
+        if (!lowCut.isBypassed<1>())
+            mag *= lowCut.get<1>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
+        if (!lowCut.isBypassed<2>())
+            mag *= lowCut.get<2>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
+        if (!lowCut.isBypassed<3>())
+            mag *= lowCut.get<3>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
         
-        auto& lowCut = monoChain.get<ChainPositions::LowCut>();
-        auto& peak = monoChain.get<ChainPositions::Peak>();
-        auto& highCut = monoChain.get<ChainPositions::HighCut>();
+        if (!highCut.isBypassed<0>())
+            mag *= highCut.get<0>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
+        if (!highCut.isBypassed<1>())
+            mag *= highCut.get<1>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
+        if (!highCut.isBypassed<2>())
+            mag *= highCut.get<2>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
+        if (!highCut.isBypassed<3>())
+            mag *= highCut.get<3>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
         
-        auto sampleRate = audioProcessor.getSampleRate();
-        
-        std::vector<double> mags;
-        mags.resize(w);
-        
-        for (int i =0; i < w; ++i)
-        {
-            double mag = 1.f;
-            auto freq = mapToLog10(double(i) / double(w), 20.0, 20000.0);
-            
-            if (!monoChain.isBypassed<ChainPositions::Peak>())
-                mag *= peak.coefficients->getMagnitudeForFrequency(freq, sampleRate);
-            
-            if (!lowCut.isBypassed<0>())
-                mag *= lowCut.get<0>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
-            if (!lowCut.isBypassed<1>())
-                mag *= lowCut.get<1>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
-            if (!lowCut.isBypassed<2>())
-                mag *= lowCut.get<2>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
-            if (!lowCut.isBypassed<3>())
-                mag *= lowCut.get<3>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
-            
-            if (!highCut.isBypassed<0>())
-                mag *= highCut.get<0>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
-            if (!highCut.isBypassed<1>())
-                mag *= highCut.get<1>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
-            if (!highCut.isBypassed<2>())
-                mag *= highCut.get<2>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
-            if (!highCut.isBypassed<3>())
-                mag *= highCut.get<3>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
-            
-            mags[i] = Decibels::gainToDecibels(mag);
-        }
-        
-        Path responseCurve;
-        const double outputMin = responseArea.getBottom();
-        const double outputMax = responseArea.getY();
-        auto map = [outputMin, outputMax](double input)
-        {
-            return jmap(input, -24.0, 24.0, outputMin, outputMax);
-        };
-        
-        responseCurve.startNewSubPath(responseArea.getX(), map(mags.front()));
-        
-        for (size_t i = 1; i < mags.size(); ++i) {
-            responseCurve.lineTo(responseArea.getX() + i, map(mags[i]));
-        }
-        
-        g.setColour(Colours::orange);
-        g.drawRoundedRectangle(responseArea.toFloat(), 4.f, 1.f);
-        
-        g.setColour(Colours::white);
-        g.strokePath(responseCurve, PathStrokeType(2.f));
+        mags[i] = Decibels::gainToDecibels(mag);
+    }
+    
+    Path responseCurve;
+    const double outputMin = responseArea.getBottom();
+    const double outputMax = responseArea.getY();
+    auto map = [outputMin, outputMax](double input)
+    {
+        return jmap(input, -24.0, 24.0, outputMin, outputMax);
+    };
+    
+    responseCurve.startNewSubPath(responseArea.getX(), map(mags.front()));
+    
+    for (size_t i = 1; i < mags.size(); ++i) {
+        responseCurve.lineTo(responseArea.getX() + i, map(mags[i]));
+    }
+    
+    g.setColour(Colours::orange);
+    g.drawRoundedRectangle(getRenderArea().toFloat(), 4.f, 1.f);
+    
+    g.setColour(Colours::white);
+    g.strokePath(responseCurve, PathStrokeType(2.f));
+}
+
+void ResponseCurveComponent::resized()
+{
+    using namespace juce;
+    background = Image(Image::PixelFormat::RGB, getWidth(), getHeight(), true);
+    
+    Graphics g(background);
+    
+    Array<float> freqs
+    {
+        20, 30, 40, 50, 100,
+        200, 300, 400, 500, 1000,
+        2000, 3000, 4000, 5000, 10000,
+        20000
+    };
+    
+    auto renderArea = getAnalysisArea();
+    auto left = renderArea.getX();
+    auto right = renderArea.getRight();
+    auto top = renderArea.getY();
+    auto bottom = renderArea.getBottom();
+    auto width = renderArea.getWidth();
+    
+    Array<float> xs;
+    for (auto f: freqs)
+    {
+        auto normX = mapFromLog10(f, 20.f, 20000.f);
+        xs.add(left + width * normX);
+    }
+    
+    g.setColour(Colours::dimgrey);
+    for(auto x : xs)
+    {
+        //        auto normX = mapFromLog10(f, 20.f, 20000.f);
+        //        g.drawVerticalLine(getWidth() * normX, 0.f, getHeight());
+        g.drawVerticalLine(x, top, bottom);
+    }
+    
+    Array<float> gain
+    {
+        -24, -12, 0, 12, 24
+    };
+    for (auto gn : gain)
+    {
+        auto y = jmap(gn, -24.f, 24.f, float(bottom), float(top));
+        g.setColour(gn == 0.f ? Colour(0u, 172u, 1u) : Colours::darkgrey);
+        g.drawHorizontalLine(y, left, right);
+    }
+    
+//    g.drawRect(getAnalysisArea());
+}
+
+juce::Rectangle<int> ResponseCurveComponent::getRenderArea()
+{
+    auto bounds = getLocalBounds();
+    //    bounds.reduce(10, 8); // JUCE_LIVE_CONSTANT(5));
+    bounds.removeFromTop(12);
+    bounds.removeFromBottom(2);
+    bounds.removeFromLeft(20);
+    bounds.removeFromRight(20);
+    
+    return bounds;
+}
+
+juce::Rectangle<int> ResponseCurveComponent::getAnalysisArea()
+{
+    auto bounds = getRenderArea();
+    bounds.removeFromTop(4);
+    bounds.removeFromBottom(4);
+    return bounds;
 }
 
 //==============================================================================
 SimpleEQAudioProcessorEditor::SimpleEQAudioProcessorEditor (SimpleEQAudioProcessor& p)
-    : AudioProcessorEditor (&p), audioProcessor (p),
+: AudioProcessorEditor (&p), audioProcessor (p),
 peakFreqSlider(*audioProcessor.apvts.getParameter("Peak Freq"), "Hz"),
 peakGainSlider(*audioProcessor.apvts.getParameter("Peak Gain"), "dB"),
 peakQualitySlider(*audioProcessor.apvts.getParameter("Peak Quality"), ""),

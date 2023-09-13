@@ -1,10 +1,10 @@
 /*
-  ==============================================================================
-
-    This file contains the basic framework code for a JUCE plugin editor.
-
-  ==============================================================================
-*/
+ ==============================================================================
+ 
+ This file contains the basic framework code for a JUCE plugin editor.
+ 
+ ==============================================================================
+ */
 
 #pragma once
 
@@ -13,18 +13,17 @@
 
 struct LookAndFeel : juce::LookAndFeel_V4
 {
-     void drawRotarySlider (juce::Graphics&,
-                                   int x, int y, int width, int height,
-                                   float sliderPosProportional,
-                                   float rotaryStartAngle,
-                                   float rotaryEndAngle,
-                            juce::Slider&) override;
+    void drawRotarySlider (juce::Graphics&,
+                           int x, int y, int width, int height,
+                           float sliderPosProportional,
+                           float rotaryStartAngle,
+                           float rotaryEndAngle,
+                           juce::Slider&) override;
 };
 
 struct RotarySliderWithLabels : juce::Slider
 {
-    RotarySliderWithLabels(juce::RangedAudioParameter& rap, const juce::String& unitSuffix) : juce::Slider(juce::Slider::SliderStyle::RotaryHorizontalVerticalDrag,
-                                        juce::Slider::TextEntryBoxPosition::NoTextBox),
+    RotarySliderWithLabels(juce::RangedAudioParameter& rap, const juce::String& unitSuffix) : juce::Slider(juce::Slider::SliderStyle::RotaryHorizontalVerticalDrag, juce::Slider::TextEntryBoxPosition::NoTextBox),
     param(&rap),
     suffix(unitSuffix)
     {
@@ -67,6 +66,7 @@ public:
     void parameterGestureChanged (int parameterIndex, bool gestureIsStarting) override {};
     void timerCallback() override;
     void paint (juce::Graphics&) override;
+    void resized() override;
     
 private:
     SimpleEQAudioProcessor& audioProcessor;
@@ -75,21 +75,27 @@ private:
     MonoChain monoChain;
     
     void updateChain();
+    
+    juce::Image background;
+    
+    juce::Rectangle<int> getRenderArea();
+    
+    juce::Rectangle<int> getAnalysisArea();
 };
 
 //==============================================================================
 /**
-*/
+ */
 class SimpleEQAudioProcessorEditor  : public juce::AudioProcessorEditor
 {
 public:
     SimpleEQAudioProcessorEditor (SimpleEQAudioProcessor&);
     ~SimpleEQAudioProcessorEditor() override;
-
+    
     //==============================================================================
     void paint (juce::Graphics&) override;
     void resized() override;
-
+    
 private:
     // This reference is provided as a quick way for your editor to
     // access the processor object that created it.
@@ -117,6 +123,6 @@ private:
     highCutSlopeSliderAttachment;
     
     std::vector<juce::Component*> getComps();
-
+    
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SimpleEQAudioProcessorEditor)
 };
