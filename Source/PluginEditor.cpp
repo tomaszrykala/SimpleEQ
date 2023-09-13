@@ -280,6 +280,7 @@ void ResponseCurveComponent::resized()
     
     Graphics g(background);
     
+    // Frequency labels
     Array<float> freqs
     {
         20, /*30, 40,*/ 50, 100,
@@ -301,15 +302,13 @@ void ResponseCurveComponent::resized()
         auto normX = mapFromLog10(f, 20.f, 20000.f);
         xs.add(left + width * normX);
     }
-    
     g.setColour(Colours::dimgrey);
     for(auto x : xs)
     {
-        //        auto normX = mapFromLog10(f, 20.f, 20000.f);
-        //        g.drawVerticalLine(getWidth() * normX, 0.f, getHeight());
         g.drawVerticalLine(x, top, bottom);
     }
     
+    // Gain labels
     Array<float> gain
     {
         -24, -12, 0, 12, 24
@@ -321,7 +320,6 @@ void ResponseCurveComponent::resized()
         g.drawHorizontalLine(y, left, right);
     }
     
-//    g.drawRect(getAnalysisArea());
     
     g.setColour(Colours::lightgrey);
     const int fontHeight = 10;
@@ -341,9 +339,7 @@ void ResponseCurveComponent::resized()
         }
         str << f;
         if (addK)
-        {
             str << "k";
-        }
         str << "Hz";
         
         auto textWidth = g.getCurrentFont().getStringWidth(str);
@@ -353,6 +349,36 @@ void ResponseCurveComponent::resized()
         r.setCentre(x, 0);
         r.setY(1);
         
+        g.drawFittedText(str, r, juce::Justification::centred, 1);
+    }
+    
+    for (auto gn : gain)
+    {
+        auto y = jmap(gn, -24.f, 24.f, float(bottom), float(top));
+        
+        String str;
+        if (gn > 0)
+            str << "+";
+        str << gn;
+        
+        auto textWidth = g.getCurrentFont().getStringWidth(str);
+        
+        Rectangle<int> r;
+        
+        // right gain labels
+        r.setSize(textWidth, fontHeight);
+        r.setX(getWidth() - textWidth);
+        r.setCentre(r.getCentreX(), y);
+        g.setColour(gn == 0.f ? Colour(0u, 172u, 1u) : Colours::lightgrey);
+        g.drawFittedText(str, r, juce::Justification::centred, 1);
+        
+        // left gain labels
+        str.clear();
+        str << (gn - 24.f);
+        r.setX(1);
+        textWidth = g.getCurrentFont().getStringWidth(str);
+        r.setSize(textWidth, fontHeight);
+        g.setColour(Colours::lightgrey);
         g.drawFittedText(str, r, juce::Justification::centred, 1);
     }
 }
